@@ -1,6 +1,8 @@
-# Demo script — Release Scribe
+# Demo script — live site (optional)
 
-A screen recording with on-screen captions and an AI voice. Nobody needs to appear or speak. Target length is about 4 minutes 30 seconds, under the 5 minute Codegeist limit.
+The recording that does not need an Atlassian site, a face, or a human voice is [demo/narration.md](../demo/narration.md), played over `npm run demo`. Use that for the submission if the app is not installed yet.
+
+The shots below are an optional second pass after you install Release Scribe on your own site. They are not a record of a deployment. This repository has not been deployed. Target length for this live pass is about 4 minutes 30 seconds, under the 5 minute Codegeist limit. Captions and a text-to-speech voice. Nobody needs to appear or speak.
 
 ## Before you record
 
