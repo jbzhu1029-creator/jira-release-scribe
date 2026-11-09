@@ -4,7 +4,9 @@ Release Scribe turns a Jira fix version, or any JQL query, into release notes a 
 
 The wording is rule-based. It does not call an external model, so the draft is the same in CI, offline, and in production. Rovo can phrase the chat around the returned Markdown. The notes themselves stay reproducible.
 
-Built for [Codegeist 2026](https://codegeist.devpost.com) (Devpost deadline 22 December 2026). Judges need an install link and a demo video under five minutes. Those last two steps need an Atlassian account and are listed at the end of this file.
+Built for [Codegeist 2026](https://codegeist.devpost.com) (Devpost deadline 22 December 2026). Author: David Zhu.
+
+Judges need an install link and a demo video under five minutes. This repository has not been deployed to an Atlassian site, and the video is still to be recorded. You can record a faceless demo from sample fixtures before you have a site. The script is [demo/narration.md](demo/narration.md). The remaining manual steps are in [SUBMISSION.md](SUBMISSION.md).
 
 ## What the app does
 
@@ -72,7 +74,7 @@ There is no `permissions.external` block, so the app makes no third-party networ
 
 The runtime is `nodejs24.x` on `arm64`, which is the runtime the Forge manifest schema recommends for standard Atlassian cloud. Atlassian Government Cloud does not offer `arm64`; set `architecture: x86_64` before deploying there.
 
-The Confluence v2 REST docs also name the granular scopes `read:space:confluence` and `write:page:confluence`. Classic scopes are what Forge recommends where they exist, and they are the ones declared here. If a create-page call returns a scope error, add those two granular scopes, deploy again, and run `forge install --upgrade`.
+The Confluence v2 REST docs also name the granular scopes `read:space:confluence` and `write:page:confluence`. Classic scopes are what Forge recommends where they exist, and they are the ones declared here. If a create-page call returns a scope error, add those two granular scopes and rerun the deploy and `forge install --upgrade` commands in the deploy section below.
 
 ## Develop without an Atlassian login
 
@@ -84,15 +86,24 @@ npm test
 npm run lint
 npm run typecheck
 npm run validate-manifest
+npm run demo -- --fast
 ```
 
 `npm test` runs Vitest. It does not read the network and does not need Forge credentials. `validate-manifest` checks `manifest.yml` with the current `@forge/manifest` schema (the package Atlassian generates from the Forge manifest schema).
 
-GitHub Actions runs lint, typecheck, tests, and manifest validation on every pull request.
+GitHub Actions runs lint, typecheck, tests, the offline demo, and manifest validation on every pull request.
 
-## Deploy
+## Offline demo
 
-The committed app id is a placeholder:
+`npm run demo` runs the release-notes pipeline on the sample Jira search in `demo/fixtures/atlas-board.json`. It prints nine scenes and writes Markdown under `demo/output/`. No Forge login and no network call.
+
+The paced run is what you screen-record. Scene pauses match [demo/narration.md](demo/narration.md) (about 2 minutes 50 seconds). `npm run demo -- --fast` skips the pauses. `DEMO_PAUSE_MS` replaces every pause with one number of milliseconds when a text-to-speech track needs more time.
+
+Generated files in `demo/output/` are gitignored.
+
+## Deploy & verify on your own Atlassian site
+
+The committed app id is a placeholder. This repository has not been deployed. The commands below are what you run on a site you control.
 
 ```yaml
 # TODO: not a registered app. `forge register` replaces this.
@@ -101,29 +112,67 @@ id: ari:cloud:ecosystem::app/00000000-0000-4000-8000-000000000000
 
 Do not commit the id `forge register` writes back. Keep that change local, or tell git to skip it (`git update-index --assume-unchanged manifest.yml`) after registering.
 
-1. Install the CLI: `npm install -g @forge/cli@latest`
-2. `forge login`
-3. From this directory, `forge register`. Accept the prompt that replaces `app.id`.
-4. `forge lint` (needs the login from step 2; CI already validates the schema offline).
-5. `forge deploy -e development` while you are trying it on your own site.
-6. `forge install --site your-site.atlassian.net --product jira --environment development`
-7. Approve the consent screen. It lists the three scopes above. Confluence has to be on the same site for publishing. Generating and copying notes only needs Jira.
-8. Open a Jira project, then **Release Scribe** in the project apps navigation. If Forge asks the user to grant access, accept it. That grant is what lets `api.asUser()` run.
-9. For the judge install link, deploy production (`forge deploy -e production`) and, in the [developer console](https://developer.atlassian.com/console/myapps/), set distribution to **Sharing** and copy the installation link. A development-environment install is not a link judges can open.
-10. After any scope change, deploy again and run `forge install --upgrade`.
+You need an Atlassian account that can deploy Forge apps, a Jira Cloud site where you can install apps, and Node.js 20 or newer. Confluence on that same site is required only when you want to publish a page. Run the commands from this directory, the one that contains `manifest.yml`.
 
-`forge deploy` bundles the TypeScript UI and the functions. There is no separate frontend build.
+```bash
+npm install -g @forge/cli@latest
+forge login
+forge register
+forge lint
+forge deploy -e development
+forge install --site your-site.atlassian.net --product jira --environment development
+```
 
-Rovo has to be available on the site. The agent shows up in the Jira and Confluence chat panel as **Release Scribe**. Try:
+Replace `your-site` with the hostname you logged into. Approve the consent screen. It lists `read:jira-work`, `read:confluence-space.summary`, and `write:confluence-content`.
 
-- “Draft release notes for version 1.2.0 of PROJ”
-- “What changed in PROJ since version 1.1.0?”
-- “Give me the executive summary”
+`forge lint` needs the login above. CI already validates the manifest schema offline. `forge deploy` bundles the TypeScript UI and the functions. There is no separate frontend build.
+
+If Forge asks the user to grant the app access the first time the page loads, accept that grant. `api.asUser()` uses it.
+
+### What to check
+
+1. `forge deploy -e development` finishes on the development environment.
+2. Open a Jira project on that site. **Release Scribe** is in the project apps navigation.
+3. Choose the open project and a fix version that has issues. The page shows the JQL it will run before you draft.
+4. Click **Draft release notes**. Counts appear for Features, Improvements, Bug fixes, and Other.
+5. The Engineering tab includes issue keys, status, and priority. The Customer tab omits keys and strips leading tags such as `[INTERNAL]` and prefixes such as `feat:`. The Executive tab is one paragraph of counts and highlights.
+6. The Markdown tab is the full document. Select it and copy it.
+7. With Confluence on the same site, choose a space, keep or edit the page title, and click **Publish page**. The new page has the same headings. A summary that contains `<` or `&` shows up as text.
+8. Open Rovo chat and select the **Release Scribe** agent. Rovo has to be available on the site. Try these, with your own project key and version names:
+   - `Draft release notes for version 1.4.0 of ATLAS`
+   - `What changed in ATLAS since version 1.3.0?`
+   - `Just the executive summary`
+9. The replies quote the markdown returned by the action. Publishing stays on the project page. The agent prompt tells it not to claim a page was created.
+10. Run `forge eligibility` and read whether the app meets Runs on Atlassian. The manifest has no `permissions.external` block. Eligibility has not been run for this repository, because the app has not been deployed.
+
+Development and production are different installs.
+
+After a scope change, deploy again and upgrade the install:
+
+```bash
+forge deploy -e development
+forge install --upgrade --site your-site.atlassian.net --product jira --environment development
+```
+
+### Install link for judges
+
+A development install is not a link judges can open. When you want that link:
+
+```bash
+forge deploy -e production
+```
+
+In the [developer console](https://developer.atlassian.com/console/myapps/), set distribution to **Sharing** and copy the installation link into the Devpost form. Production has not been deployed from this repository.
+
+Atlassian Government Cloud does not offer the `arm64` architecture declared here. Set `architecture: x86_64` before deploying there.
+
+If a create-page call returns a scope error, add the granular scopes `read:space:confluence` and `write:page:confluence`, deploy again, and run `forge install --upgrade` with the site, product, and environment flags above.
 
 ## Project layout for the submission
 
-- [Devpost description draft](docs/devpost.md) — inspiration, what it does, how it was built, challenges, what is next.
-- [Demo video script](docs/demo-script.md) — screen recording, on-screen captions, and an AI voiceover. No one needs to be on camera.
+- [SUBMISSION.md](SUBMISSION.md) — Devpost text and the checklist of steps that still need a person.
+- [Offline demo narration](demo/narration.md) — text-to-speech script for `npm run demo`. No face, no human voice, no Atlassian account.
+- [Live-site demo script](docs/demo-script.md) — optional shots after the app is installed on your own site.
 
 ## Security
 
