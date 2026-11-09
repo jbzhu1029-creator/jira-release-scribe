@@ -1,0 +1,33 @@
+{
+  "name": "jira-release-scribe",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Atlassian Forge app that turns a Jira fix version into stakeholder-ready release notes.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "validate-manifest": "node scripts/validate-manifest.mjs"
+  },
+  "dependencies": {
+    "@forge/api": "^8.0.0",
+    "@forge/bridge": "^5.0.0",
+    "@forge/react": "^11.0.0",
+    "@forge/resolver": "^1.6.0",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@forge/manifest": "^13.0.0",
+    "@types/react": "^18.3.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^3.0.0"
+  }
+}

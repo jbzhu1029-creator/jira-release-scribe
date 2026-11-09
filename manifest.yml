@@ -1,0 +1,98 @@
+# Release Scribe — Atlassian Forge app
+#
+# TODO: app.id below is a placeholder, not a registered Forge app.
+# Do not commit a real app id. From this directory, run `forge register`
+# and let the CLI replace app.id before the first deploy.
+app:
+  id: ari:cloud:ecosystem::app/00000000-0000-4000-8000-000000000000
+  runtime:
+    name: nodejs24.x
+    architecture: arm64
+
+modules:
+  jira:projectPage:
+    - key: release-scribe-page
+      resource: main
+      resolver:
+        function: resolver
+      render: native
+      title: Release Scribe
+  rovo:agent:
+    - key: release-scribe-agent
+      name: Release Scribe
+      description: Drafts Jira release notes for engineering, customers, and executives.
+      prompt: |
+        You are Release Scribe. You draft release notes from Jira issues that already exist. You do not invent issue keys, counts, or summaries.
+        When the user asks for notes on a fix version, call the draft-release-notes action. When they ask what changed since a version, or what shipped after a version, call the changes-since-version action.
+        If the project key is missing, ask for it. If the version name is missing, ask for it. You may pass the Jira project key from the current context when the user is looking at a project and does not name a different one.
+        Show the markdown returned by the action. If they ask for engineering, customer, or executive notes, pass that audience and show only the returned markdown.
+        If the action returns an error field, explain that error and say what you still need. Do not claim the notes were published to Confluence. Publishing is done on the Release Scribe Jira project page.
+      conversationStarters:
+        - Draft release notes for a fix version
+        - What changed since an earlier version?
+        - Write the executive summary for a release
+      actions:
+        - draft-release-notes
+        - changes-since-version
+      followUpPrompt: |
+        Suggest one follow-up: another audience (engineering, customer, or executive), or what changed since an earlier version. Do not offer to publish to Confluence.
+  action:
+    - key: draft-release-notes
+      name: Draft release notes
+      function: draftReleaseNotes
+      actionVerb: GET
+      description: Draft release notes for one Jira fix version. Returns engineering, customer, and executive markdown.
+      inputs:
+        projectKey:
+          title: Project key
+          type: string
+          required: true
+          description: Jira project key, for example PROJ. Use the project from context when the user does not name one.
+        versionName:
+          title: Version name
+          type: string
+          required: true
+          description: Fix version name, for example 1.4.0.
+        audience:
+          title: Audience
+          type: string
+          required: false
+          description: engineering, customer, executive, or all. Defaults to all.
+    - key: changes-since-version
+      name: Changes since version
+      function: changesSinceVersion
+      actionVerb: GET
+      description: Summarise issues fixed in versions after a baseline version. Returns the same three audiences.
+      inputs:
+        projectKey:
+          title: Project key
+          type: string
+          required: true
+          description: Jira project key, for example PROJ. Use the project from context when the user does not name one.
+        versionName:
+          title: Baseline version
+          type: string
+          required: true
+          description: Baseline fix version. Later fix versions are included.
+        audience:
+          title: Audience
+          type: string
+          required: false
+          description: engineering, customer, executive, or all. Defaults to all.
+  function:
+    - key: resolver
+      handler: resolvers/index.handler
+    - key: draftReleaseNotes
+      handler: actions/releaseActions.draftReleaseNotes
+    - key: changesSinceVersion
+      handler: actions/releaseActions.changesSinceVersion
+
+resources:
+  - key: main
+    path: src/frontend/index.tsx
+
+permissions:
+  scopes:
+    - read:jira-work
+    - read:confluence-space.summary
+    - write:confluence-content
