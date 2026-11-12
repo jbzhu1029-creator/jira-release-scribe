@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 demo/output/
+demo/work/
 .forge/
 *.log
 .env
