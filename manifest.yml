@@ -36,6 +36,14 @@ modules:
         - changes-since-version
       followUpPrompt: |
         Suggest one follow-up: another audience (engineering, customer, or executive), or what changed since an earlier version. Do not offer to publish to Confluence.
+  # Same read-only actions, as tools for other agents and Atlassian MCP.
+  # External exposure stays off until a site admin enables it after install.
+  rovo:mcp:
+    - key: release-scribe-mcp
+      name: Release Scribe
+      tools:
+        - draft-release-notes
+        - changes-since-version
   action:
     - key: draft-release-notes
       name: Draft release notes

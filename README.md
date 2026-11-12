@@ -4,9 +4,9 @@ Release Scribe turns a Jira fix version, or any JQL query, into release notes a 
 
 The wording is rule-based. It does not call an external model, so the draft is the same in CI, offline, and in production. Rovo can phrase the chat around the returned Markdown. The notes themselves stay reproducible.
 
-Built for [Codegeist 2026](https://codegeist.devpost.com) (Devpost deadline 22 December 2026). Author: David Zhu.
+Built for [Codegeist 2026](https://codegeist2026.devpost.com) (Devpost deadline 22 December 2026, 12:00pm PST). Author: David Zhu.
 
-Judges need an install link and a demo video under five minutes. This repository has not been deployed to an Atlassian site. The offline recording is [demo/release-scribe-demo.mp4](demo/release-scribe-demo.mp4) (captions in [demo/release-scribe-demo.srt](demo/release-scribe-demo.srt)). Uploading that file is still a manual step. The script is [demo/narration.md](demo/narration.md). The remaining manual steps are in [SUBMISSION.md](SUBMISSION.md).
+Judges need an install link and a public demo video under five minutes. This repository has not been deployed to an Atlassian site. The offline recording is [demo/release-scribe-demo.mp4](demo/release-scribe-demo.mp4) (2 minutes 47 seconds, captions in [demo/release-scribe-demo.srt](demo/release-scribe-demo.srt)). It shows the notes pipeline on sample data, not an installed Forge app. Uploading it to YouTube as a public video is still a manual step. The script is [demo/narration.md](demo/narration.md). Category, bonus prizes, and the remaining account steps are in [SUBMISSION.md](SUBMISSION.md).
 
 ## What the app does
 
@@ -17,7 +17,7 @@ On a Jira project page named **Release Scribe**:
 3. Read the three audiences, plus the full Markdown document, in a read-only field you can select and copy.
 4. Choose a Confluence space and publish the notes as a page. The page is created with the Confluence v2 REST API through Forge `requestConfluence`.
 
-In Rovo chat, the **Release Scribe** agent has two read-only actions:
+In Rovo chat, the **Release Scribe** agent has two read-only actions. The same actions are listed on a `rovo:mcp` module so other agents, and Atlassian MCP after a site admin enables the tools, can call them:
 
 | Action | What it answers |
 | --- | --- |
@@ -50,15 +50,15 @@ Jira project page (UI Kit)          Rovo agent
 | `src/services/createReleaseNotes.ts` | Runs a JQL search through an injected client, then calls the core. |
 | `src/jira`, `src/confluence` | Forge product requests. Search uses `POST /rest/api/3/search/jql`. Pages are created with `POST /wiki/api/v2/pages`. |
 | `src/resolvers` | UI Kit resolver for the project page. |
-| `src/actions/releaseActions.ts` | Rovo action handlers. |
+| `src/actions/releaseActions.ts` | Rovo action handlers. The MCP module calls these same functions. |
 | `src/frontend` | UI Kit page (`render: native`). |
-| `manifest.yml` | Modules, runtime, and scopes. Validated in CI with `@forge/manifest`. |
+| `manifest.yml` | Modules (`jira:projectPage`, `rovo:agent`, `rovo:mcp`, actions), runtime, and scopes. Validated in CI with `@forge/manifest`. |
 
 Issue types are grouped with fixed rules: names containing “bug”, “defect”, or “regress” are bug fixes; stories, features, and epics are features; improvements and enhancements stay improvements; everything else, including tasks and sub-tasks, is Other. Customer lines drop leading tags such as `[INTERNAL]` and conventional-commit prefixes such as `feat:`. Engineering lines keep the issue key, status, and priority. The executive paragraph is one sentence of counts plus up to three highlights.
 
 An optional `SummaryRewriter` can rephrase customer and executive lines. The default rewriter is the rule above. A model-backed rewriter can be passed into `generateReleaseNotes` later. It is not wired up, and a rewriter that throws falls back to the rules, so the app still renders with no AI entitlement and no third-party HTTP call.
 
-At most 200 issues are included. The draft says when that cap is hit. Custom JQL is limited to 2,000 characters. Publishing rebuilds the page from sanitized issue fields, so the storage body cannot carry raw HTML from the browser.
+At most 200 issues are included. Engineering, customer, and executive copy each say when that cap is hit, and the page shows the same warning. An empty match says that nothing matched and tells you to confirm the version or switch to JQL, instead of publishing a heading with no explanation. Custom JQL is limited to 2,000 characters. Publishing rebuilds the page from sanitized issue fields, so the storage body cannot carry raw HTML from the browser. A duplicate Confluence title, a 401, a 403, a 404, and a 429 become a short next step rather than a raw status line. Confluence v2 returns errors as an array of objects; that shape is read too.
 
 ## Scopes and runtime
 
@@ -135,7 +135,14 @@ forge deploy -e development
 forge install --site your-site.atlassian.net --product jira --environment development
 ```
 
-Replace `your-site` with the hostname you logged into. Approve the consent screen. It lists `read:jira-work`, `read:confluence-space.summary`, and `write:confluence-content`.
+Replace `your-site` with the hostname you logged into. Codegeist also provisions a free site with Jira, Confluence, and Rovo. From this directory, after `forge login`:
+
+```bash
+forge site provision
+forge install --demo-site
+```
+
+`forge site provision` prints the site URL. You can only have one provisioned site at a time. Approve the consent screen. It lists `read:jira-work`, `read:confluence-space.summary`, and `write:confluence-content`.
 
 `forge lint` needs the login above. CI already validates the manifest schema offline. `forge deploy` bundles the TypeScript UI and the functions. There is no separate frontend build.
 
@@ -156,6 +163,14 @@ If Forge asks the user to grant the app access the first time the page loads, ac
    - `Just the executive summary`
 9. The replies quote the markdown returned by the action. Publishing stays on the project page. The agent prompt tells it not to claim a page was created.
 10. Run `forge eligibility` and read whether the app meets Runs on Atlassian. The manifest has no `permissions.external` block. Eligibility has not been run for this repository, because the app has not been deployed.
+11. Open a fix version that has no issues. Expect the message “No issues matched”, and the same sentence in the customer and engineering notes. The customer section does not invent changes.
+12. A result larger than 200 issues says the draft stops there, on the page and in every audience. The cap is what the code does. This repository has not run that query on a site.
+13. Publish, then publish again with the same page title. Expect a message that the title already exists. Edit the title and publish again.
+14. If Jira returns 403, the page says you do not have permission to browse those issues. The query runs as the person who clicked Draft.
+
+### Atlassian MCP tools
+
+After the app is installed, external MCP exposure stays off. A site admin turns the tools on in Atlassian Administration: Apps, Sites, the site, Connected apps, this Forge app, then the tool list. The endpoint is `https://mcp.atlassian.com/forge/<appId>`, where `<appId>` is the UUID from the registered `app.id`. The placeholder id in git is not that UUID. This step has not been done for this repository.
 
 Development and production are different installs.
 
@@ -182,10 +197,10 @@ If a create-page call returns a scope error, add the granular scopes `read:space
 
 ## Project layout for the submission
 
-- [SUBMISSION.md](SUBMISSION.md) — Devpost text and the checklist of steps that still need a person.
+- [SUBMISSION.md](SUBMISSION.md) — Devpost text, the judging checklist, and the steps that still need an Atlassian account.
 - [Offline demo narration](demo/narration.md) — text-to-speech script for `npm run demo`. No face, no human voice, no Atlassian account.
-- [Offline demo video](demo/release-scribe-demo.mp4) — the recording of that script, with [captions](demo/release-scribe-demo.srt).
-- [Live-site demo script](docs/demo-script.md) — optional shots after the app is installed on your own site.
+- [Offline demo video](demo/release-scribe-demo.mp4) — the recording of that script, with [captions](demo/release-scribe-demo.srt). It shows sample data, not an installed app.
+- [Live-site demo script](docs/demo-script.md) — shots to record after install. The presentation criterion asks for the project functioning on Forge.
 
 ## Security
 
