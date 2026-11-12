@@ -4,12 +4,12 @@ Author: David Zhu.
 
 Tagline: Release notes from a Jira fix version, written for engineering, customers, and executives.
 
-Paste the sections below into the [Codegeist 2026](https://codegeist.devpost.com) form. Deadline: 22 December 2026. The install link and the video URL are still open. This repository has not been deployed to an Atlassian site, and it does not report user counts or other usage metrics.
+Paste the sections below into the [Codegeist 2026](https://codegeist.devpost.com) form. Deadline: 22 December 2026. The install link and the public video URL are still open. The offline recording is in [demo/release-scribe-demo.mp4](demo/release-scribe-demo.mp4). This repository has not been deployed to an Atlassian site, and it does not report user counts or other usage metrics.
 
 Suggested links once the manual steps below are done:
 
 - Install link: the Sharing link from the developer console after `forge deploy -e production`.
-- Video: an unlisted upload, under five minutes. Record `npm run demo` with [demo/narration.md](demo/narration.md). No face and no human voice.
+- Video: [demo/release-scribe-demo.mp4](demo/release-scribe-demo.mp4) (captions in [demo/release-scribe-demo.srt](demo/release-scribe-demo.srt)). Upload it unlisted. No face and no human voice. The pictures are the offline demo, not a live site.
 
 ## Inspiration
 
@@ -89,6 +89,6 @@ None of these have been done for this repository.
 - [ ] Run `forge install` on a development site you control (`--site your-site.atlassian.net --product jira --environment development`).
 - [ ] On that site, confirm the project page, a draft, and (when Confluence is on the same site) a published page. The checks are in the README section “Deploy & verify on your own Atlassian site”.
 - [ ] Register the project on Devpost for Codegeist 2026.
-- [ ] Record the video from `npm run demo` using [demo/narration.md](demo/narration.md). Text-to-speech, captions, no face. Or, after the install above, record the optional live-site shots in [docs/demo-script.md](docs/demo-script.md).
+- [x] Record the offline demo ([demo/release-scribe-demo.mp4](demo/release-scribe-demo.mp4), captions in [demo/release-scribe-demo.srt](demo/release-scribe-demo.srt)). Text-to-speech, no face. Regenerate with `demo/render_video.sh`. A live-site recording is still optional, from [docs/demo-script.md](docs/demo-script.md), after the install above.
 - [ ] For the judge install link, `forge deploy -e production`, set distribution to Sharing in the developer console, and paste that link into Devpost.
 - [ ] Paste the video URL into Devpost.

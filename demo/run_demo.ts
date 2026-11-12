@@ -1,3 +1,4 @@
+import { appendFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -5,8 +6,20 @@ import { buildSampleRelease, formatScene, parseSampleFixture, type DemoScene } f
 
 const demoDir = path.dirname(fileURLToPath(import.meta.url));
 
-function resolveDwell(scene: DemoScene): number {
+function readPauseList(sceneCount: number): number[] | undefined {
+  const raw = process.env.DEMO_PAUSE_LIST;
+  if (raw === undefined || raw.trim() === '') return undefined;
+  const parts = raw.split(',').map((part) => Number(part.trim()));
+  if (parts.length !== sceneCount || parts.some((value) => !Number.isFinite(value) || value < 0)) {
+    throw new Error(`DEMO_PAUSE_LIST must be ${sceneCount} comma-separated non-negative millisecond values.`);
+  }
+  return parts;
+}
+
+function resolveDwell(scene: DemoScene, index: number, pauses: number[] | undefined): number {
   if (process.argv.includes('--fast')) return 0;
+  const listed = pauses?.[index];
+  if (listed !== undefined) return listed;
   const raw = process.env.DEMO_PAUSE_MS;
   if (raw === undefined || raw === '') return scene.dwellMs;
   const parsed = Number(raw);
@@ -14,6 +27,12 @@ function resolveDwell(scene: DemoScene): number {
     throw new Error('DEMO_PAUSE_MS must be a non-negative number of milliseconds.');
   }
   return parsed;
+}
+
+function markScene(index: number): void {
+  const file = process.env.DEMO_TIMING_FILE;
+  if (!file) return;
+  appendFileSync(file, `${index} ${Date.now()}\n`);
 }
 
 function shouldClear(): boolean {
@@ -37,12 +56,14 @@ async function main(): Promise<void> {
     await writeFile(path.join(outDir, file.name), file.contents, 'utf8');
   }
 
+  const pauses = readPauseList(demo.scenes.length);
   for (let index = 0; index < demo.scenes.length; index += 1) {
     const scene = demo.scenes[index];
     if (!scene) continue;
     if (shouldClear()) console.clear();
+    markScene(index);
     console.log(formatScene(scene, index, demo.scenes.length));
-    await wait(resolveDwell(scene));
+    await wait(resolveDwell(scene, index, pauses));
   }
 }
 

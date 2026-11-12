@@ -1,14 +1,20 @@
 # Narration — Release Scribe offline demo
 
-Text-to-speech script for a screen recording of about 2 minutes 50 seconds. No face and no human voice. The pictures are the terminal running `npm run demo`. Scene times match the pauses in that script.
+Text-to-speech script for a faceless screen recording. No face and no human voice. The committed video is [release-scribe-demo.mp4](release-scribe-demo.mp4), with captions in [release-scribe-demo.srt](release-scribe-demo.srt). Regenerate both by running [render_video.sh](render_video.sh).
+
+The pictures are a terminal. First the Forge manifest and `src/core`, then `npm run demo` on the sample issues in this repo. Nothing is signed in, and no request leaves the machine. The app has not been installed on an Atlassian site.
+
+Scene headings below are the default pauses for `npm run demo` (about 2 minutes 51 seconds). The renderer keeps each scene on screen for the voice line under it, including the opening, and stays under three minutes.
 
 ## Before you record
+
+`demo/render_video.sh` does this take. The steps below are the same take if you record it by hand.
 
 1. From the repo root, run `npm ci` once.
 2. Use a terminal about 110 columns wide and 42 rows tall. Hide anything personal in the prompt. A plain shell prompt is enough.
 3. Generate one audio file from the Voice lines below, in order, at a steady pace of about 150 words per minute. Any offline or hosted text-to-speech voice is fine. Keep the same voice for the whole take.
 4. Start the audio as Scene 1 appears, then run `npm run demo`. Each scene stays up for the range in its heading, then the terminal clears and shows the next one.
-5. If your voice track is slower than the pauses, stop and rerun with a longer hold, for example `DEMO_PAUSE_MS=22000 npm run demo`. That one value replaces every scene pause.
+5. If your voice track is slower than the pauses, stop and rerun with a longer hold, for example `DEMO_PAUSE_MS=22000 npm run demo`. That one value replaces every scene pause. `DEMO_PAUSE_LIST` is a comma-separated list with one millisecond value per scene. `demo/render_video.sh` sets it from the voice line under each heading. `--fast` still skips every pause.
 6. `npm run demo -- --fast` prints every scene with no waiting. Use it to check the run. Use the paced command for the recording.
 7. Burn the Voice lines in as captions, or upload them as subtitles. Do not put a person on camera.
 8. Export at 1920×1080 if you can. Keep the finished video under five minutes. The Codegeist form wants a link judges can open, usually an unlisted upload.
@@ -20,6 +26,14 @@ Text-to-speech script for a screen recording of about 2 minutes 50 seconds. No f
 - Say version numbers as “one point four point zero” and “one point three point zero”.
 - “feat” is the conventional-commit prefix. Say it like “feet”.
 - README is “read me”.
+
+## Opening - Code layout
+
+On screen: `manifest.yml` (project page, Rovo agent, two actions, scopes), the `src/core` file list, and the sample fixture path. A line says this is not installed on an Atlassian site. The recording then runs `npm run demo`.
+
+Voice:
+
+Release Scribe is a Forge app. The manifest registers a Jira project page and a Rovo agent with two actions. The notes engine is plain TypeScript in src/core. Next, the offline demo drafts version 1.4.0 from sample issues. This repository has not been installed on a site.
 
 ## Scene 1 of 9 - Sample project (0:00-0:20)
 

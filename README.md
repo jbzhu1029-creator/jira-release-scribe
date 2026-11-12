@@ -6,7 +6,7 @@ The wording is rule-based. It does not call an external model, so the draft is t
 
 Built for [Codegeist 2026](https://codegeist.devpost.com) (Devpost deadline 22 December 2026). Author: David Zhu.
 
-Judges need an install link and a demo video under five minutes. This repository has not been deployed to an Atlassian site, and the video is still to be recorded. You can record a faceless demo from sample fixtures before you have a site. The script is [demo/narration.md](demo/narration.md). The remaining manual steps are in [SUBMISSION.md](SUBMISSION.md).
+Judges need an install link and a demo video under five minutes. This repository has not been deployed to an Atlassian site. The offline recording is [demo/release-scribe-demo.mp4](demo/release-scribe-demo.mp4) (captions in [demo/release-scribe-demo.srt](demo/release-scribe-demo.srt)). Uploading that file is still a manual step. The script is [demo/narration.md](demo/narration.md). The remaining manual steps are in [SUBMISSION.md](SUBMISSION.md).
 
 ## What the app does
 
@@ -101,6 +101,18 @@ The paced run is what you screen-record. Scene pauses match [demo/narration.md](
 
 Generated files in `demo/output/` are gitignored.
 
+## Re-render the demo video
+
+[demo/release-scribe-demo.mp4](demo/release-scribe-demo.mp4) is a terminal recording of the manifest, `src/core`, and `npm run demo` on `demo/fixtures/atlas-board.json`. Captions are burned in, and the same cues are in [demo/release-scribe-demo.srt](demo/release-scribe-demo.srt). The voice is offline text-to-speech. The pictures are sample data on this machine. The app has not been installed on an Atlassian site.
+
+From the repo root, with ffmpeg, ttyd, VHS, Python 3, Node.js 20+, and JetBrains Mono:
+
+```bash
+demo/render_video.sh
+```
+
+The script reads the Voice lines in [demo/narration.md](demo/narration.md). It speaks them with Piper (the en_US lessac voice, cached under `demo/work/`) and falls back to espeak-ng if that download fails. [demo/release-scribe.tape](demo/release-scribe.tape) is the VHS tape the script writes and records. `demo/work/` is scratch space and is gitignored. Scene headings in the narration are the default `npm run demo` pauses. The renderer holds each scene for its voice line.
+
 ## Deploy & verify on your own Atlassian site
 
 The committed app id is a placeholder. This repository has not been deployed. The commands below are what you run on a site you control.
@@ -172,6 +184,7 @@ If a create-page call returns a scope error, add the granular scopes `read:space
 
 - [SUBMISSION.md](SUBMISSION.md) — Devpost text and the checklist of steps that still need a person.
 - [Offline demo narration](demo/narration.md) — text-to-speech script for `npm run demo`. No face, no human voice, no Atlassian account.
+- [Offline demo video](demo/release-scribe-demo.mp4) — the recording of that script, with [captions](demo/release-scribe-demo.srt).
 - [Live-site demo script](docs/demo-script.md) — optional shots after the app is installed on your own site.
 
 ## Security
