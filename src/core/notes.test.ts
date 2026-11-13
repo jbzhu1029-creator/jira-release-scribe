@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { groupForIssueType, groupIssues } from './group';
-import { generateReleaseNotes, parseAudience, ruleBasedRewriter, toActionResult } from './notes';
+import {
+  draftNotices,
+  EMPTY_RELEASE_GUIDANCE,
+  EMPTY_RELEASE_NEXT_STEP,
+  generateReleaseNotes,
+  parseAudience,
+  ruleBasedRewriter,
+  toActionResult,
+  TRUNCATION_NOTICE,
+} from './notes';
 import type { ReleaseIssue, SummaryRewriter } from './types';
 
 function issue(partial: Partial<ReleaseIssue> & Pick<ReleaseIssue, 'key' | 'summary' | 'issueType'>): ReleaseIssue {
@@ -94,6 +103,8 @@ describe('generateReleaseNotes', () => {
     expect(notes.audiences.customer).toContain('Export notes to Confluence');
     expect(notes.audiences.customer).toContain('### Other');
     expect(notes.audiences.customer).toContain('Update CI runners');
+    expect(notes.audiences.customer).not.toContain('No issues matched');
+    expect(notes.audiences.engineering).not.toContain('200 matching');
   });
 
   it('writes a single executive paragraph with counts and feature highlights', () => {
@@ -134,19 +145,31 @@ describe('generateReleaseNotes', () => {
 
   it('describes an empty release without inventing highlights', () => {
     const empty = generateReleaseNotes({ title: 'PROJ 9.0.0', generatedAt, issues: [] });
-    expect(empty.audiences.executive).toBe('PROJ 9.0.0 has no issues in scope.');
+    expect(empty.audiences.executive).toBe(`PROJ 9.0.0 has no issues in scope. ${EMPTY_RELEASE_NEXT_STEP}`);
+    expect(empty.audiences.engineering).toContain(EMPTY_RELEASE_GUIDANCE);
+    expect(empty.audiences.customer).toContain(EMPTY_RELEASE_GUIDANCE);
+    expect(empty.storage).toContain('No issues matched.');
     expect(empty.markdown).toContain('0 issues.');
+    expect(empty.audiences.customer).not.toContain('### Features');
+    expect(draftNotices(empty)).toEqual([
+      { appearance: 'information', title: 'No issues matched', body: EMPTY_RELEASE_GUIDANCE },
+    ]);
   });
 
-  it('adds a truncation sentence', () => {
+  it('adds a truncation sentence to every audience', () => {
     const truncated = generateReleaseNotes({
       title: 'Big',
       generatedAt,
       truncated: true,
       issues: [issue({ key: 'PROJ-1', summary: 'One change', issueType: 'Story' })],
     });
-    expect(truncated.audiences.executive).toContain('This draft includes only the first 200 matching issues.');
+    expect(truncated.audiences.executive).toContain(TRUNCATION_NOTICE);
+    expect(truncated.audiences.engineering).toContain(TRUNCATION_NOTICE);
+    expect(truncated.audiences.customer).toContain(TRUNCATION_NOTICE);
     expect(truncated.markdown).toContain('Results were truncated at 200 issues.');
+    expect(draftNotices(truncated)).toEqual([
+      { appearance: 'warning', title: 'Showing the first 200 issues', body: TRUNCATION_NOTICE },
+    ]);
   });
 
   it('uses an optional rewriter for customer and executive text only', () => {

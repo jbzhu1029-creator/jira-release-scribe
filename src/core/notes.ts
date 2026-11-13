@@ -12,6 +12,31 @@ import {
   type SummaryRewriter,
 } from './types';
 
+export const EMPTY_RELEASE_NEXT_STEP =
+  'Confirm the version name, or use a JQL query if the work is not on a fix version.';
+
+export const EMPTY_RELEASE_GUIDANCE = `No issues matched. ${EMPTY_RELEASE_NEXT_STEP}`;
+
+export const TRUNCATION_NOTICE =
+  'This draft includes only the first 200 matching issues. Narrow the version or the query before you publish or share it.';
+
+export interface DraftNotice {
+  appearance: 'information' | 'warning';
+  title: string;
+  body: string;
+}
+
+export function draftNotices(notes: { issueCount: number; truncated: boolean }): DraftNotice[] {
+  const notices: DraftNotice[] = [];
+  if (notes.issueCount === 0) {
+    notices.push({ appearance: 'information', title: 'No issues matched', body: EMPTY_RELEASE_GUIDANCE });
+  }
+  if (notes.truncated) {
+    notices.push({ appearance: 'warning', title: 'Showing the first 200 issues', body: TRUNCATION_NOTICE });
+  }
+  return notices;
+}
+
 export const ruleBasedRewriter: SummaryRewriter = {
   rewrite(summary) {
     return tidyCustomerSummary(summary);
@@ -111,7 +136,7 @@ function countSentence(title: string, counts: Record<ReleaseGroup, number>): str
   if (counts.improvements) parts.push(plural(counts.improvements, 'improvement', 'improvements'));
   if (counts.bugfixes) parts.push(plural(counts.bugfixes, 'bug fix', 'bug fixes'));
   if (counts.other) parts.push(plural(counts.other, 'other change', 'other changes'));
-  if (parts.length === 0) return `${title} has no issues in scope.`;
+  if (parts.length === 0) return `${title} has no issues in scope. ${EMPTY_RELEASE_NEXT_STEP}`;
   return `${title} includes ${joinAnd(parts)}.`;
 }
 
@@ -132,7 +157,7 @@ function executiveParagraph(
   truncated: boolean,
   rewriter: SummaryRewriter,
 ): string {
-  const truncation = truncated ? ' This draft includes only the first 200 matching issues.' : '';
+  const truncation = truncated ? ` ${TRUNCATION_NOTICE}` : '';
   return `${countSentence(title, counts)}${highlightSentence(groups, rewriter)}${truncation}`;
 }
 
@@ -146,9 +171,22 @@ export function generateReleaseNotes(input: ReleaseNotesInput, rewriter: Summary
     ? `Generated ${date} (UTC) by Release Scribe. ${input.issues.length} issues shown. Results were truncated at 200 issues.`
     : `Generated ${date} (UTC) by Release Scribe. ${plural(input.issues.length, 'issue', 'issues')}.`;
 
-  const engineeringIntro = input.sourceDetail
-    ? `Written for the team that shipped the work. Each line keeps the issue key, status, and priority. Source: ${collapseWhitespace(input.sourceDetail)}.`
-    : 'Written for the team that shipped the work. Each line keeps the issue key, status, and priority.';
+  const engineeringIntro = [
+    input.sourceDetail
+      ? `Written for the team that shipped the work. Each line keeps the issue key, status, and priority. Source: ${collapseWhitespace(input.sourceDetail)}.`
+      : 'Written for the team that shipped the work. Each line keeps the issue key, status, and priority.',
+    input.issues.length === 0 ? EMPTY_RELEASE_GUIDANCE : '',
+    truncated ? TRUNCATION_NOTICE : '',
+  ]
+    .filter((part) => part.length > 0)
+    .join(' ');
+
+  const customerIntro = [
+    'Written for people who use the product. Issue keys and internal status are omitted.',
+    truncated ? TRUNCATION_NOTICE : '',
+  ]
+    .filter((part) => part.length > 0)
+    .join(' ');
 
   const engineeringBlocks: Block[] = RELEASE_GROUPS.map((group) => ({
     heading: GROUP_LABELS[group],
@@ -174,7 +212,8 @@ export function generateReleaseNotes(input: ReleaseNotesInput, rewriter: Summary
     {
       heading: 'Customer-facing',
       level: 2,
-      intro: 'Written for people who use the product. Issue keys and internal status are omitted.',
+      intro: customerIntro,
+      paragraph: input.issues.length === 0 ? EMPTY_RELEASE_GUIDANCE : undefined,
     },
     ...customerBlocks,
   ];

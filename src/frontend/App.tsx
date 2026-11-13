@@ -22,6 +22,7 @@ import {
 } from '@forge/react';
 import { useEffect, useState } from 'react';
 import { jqlForFixVersion } from '../core/jql';
+import { draftNotices } from '../core/notes';
 import { GROUP_LABELS, RELEASE_GROUPS, type Audience, type ReleaseGroup, type ReleaseIssue, type ReleaseNotes } from '../core/types';
 import { buildPageTitle } from '../core/publish';
 
@@ -330,6 +331,11 @@ export function App() {
               ? `${notes.issueCount} issues shown. Results stop at 200.`
               : `${notes.issueCount} ${notes.issueCount === 1 ? 'issue' : 'issues'}.`}
           </Text>
+          {draftNotices(notes).map((notice) => (
+            <SectionMessage key={notice.title} appearance={notice.appearance} title={notice.title}>
+              {notice.body}
+            </SectionMessage>
+          ))}
           <Inline space="space.100" alignBlock="center">
             {RELEASE_GROUPS.map((group) => (
               <Lozenge key={group} appearance={GROUP_APPEARANCE[group]}>
