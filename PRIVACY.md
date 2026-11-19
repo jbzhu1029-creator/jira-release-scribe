@@ -24,10 +24,10 @@ The app does not collect analytics, usage telemetry, cookies, or advertising dat
 The app requests these Atlassian scopes:
 
 - `read:jira-work` — to search issues and list projects and versions
-- `read:confluence-space.summary` — to list spaces the user can publish to
-- `write:confluence-content` — to create a release-notes page when the user publishes
+- `read:confluence-space.summary` and `read:space:confluence` — to list spaces the app can publish to
+- `write:confluence-content` and `write:page:confluence` — to create a release-notes page when the user publishes
 
-Requests run as the invoking user (`api.asUser()`). The app only sees issues and spaces that person can already access.
+Jira reads run as the invoking user (`api.asUser()`), so the app only sees issues that person can already access. Listing Confluence spaces and creating a published page run as the app (`api.asApp()`) on the same site, and still do not leave Atlassian.
 
 ## Contact
 

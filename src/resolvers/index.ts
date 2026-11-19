@@ -38,8 +38,11 @@ resolver.define('listVersions', async ({ payload }: { payload: { projectKey?: un
 
 resolver.define('listSpaces', async () => {
   try {
-    return ok(await listSpaces());
+    const spaces = await listSpaces();
+    console.log(`Release Scribe listSpaces count=${spaces.length}`);
+    return ok(spaces);
   } catch (error) {
+    console.warn(`Release Scribe listSpaces failed: ${errorMessage(error)}`);
     return fail(error);
   }
 });
