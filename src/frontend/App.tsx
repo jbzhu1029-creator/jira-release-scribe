@@ -113,7 +113,7 @@ export function App() {
   const [spaceId, setSpaceId] = useState('');
   const [notes, setNotes] = useState<ReleaseNotes | undefined>();
   const [pageTitle, setPageTitle] = useState('');
-  const [published, setPublished] = useState<{ url?: string; title: string } | undefined>();
+  const [published, setPublished] = useState<{ url?: string; title: string; version?: number; updated?: boolean } | undefined>();
   const [error, setError] = useState('');
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [loadingVersions, setLoadingVersions] = useState(false);
@@ -223,7 +223,7 @@ export function App() {
     setError('');
     setPublishing(true);
     const issues: ReleaseIssue[] = RELEASE_GROUPS.flatMap((group) => notes.groups[group]);
-    const result = await call<{ id?: string; url?: string; title: string }>('publishNotes', {
+    const result = await call<{ id?: string; url?: string; title: string; version?: number; updated?: boolean }>('publishNotes', {
       spaceId,
       title: pageTitle,
       releaseTitle: notes.title,
@@ -421,7 +421,16 @@ export function App() {
           </Button>
           {publishing ? <Spinner label="Publishing Confluence page" /> : null}
           {published ? (
-            <SectionMessage appearance="success" title="Page created">
+            <SectionMessage
+              appearance="success"
+              title={
+                published.updated
+                  ? published.version
+                    ? `Page already exists — updated to version ${published.version}`
+                    : 'Page already exists — updated'
+                  : 'Page created'
+              }
+            >
               {published.url ? (
                 <Link href={published.url} openNewTab>
                   {published.title}

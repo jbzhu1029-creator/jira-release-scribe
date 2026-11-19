@@ -139,6 +139,8 @@ describe('generateReleaseNotes', () => {
     });
     expect(emptyFeatures.audiences.engineering).toContain('### Features');
     expect(emptyFeatures.audiences.engineering).toContain('_None._');
+    expect(emptyFeatures.storage).toContain('<h3>Features</h3><p><em>None.</em></p>');
+    expect(emptyFeatures.storage).not.toContain('_None._');
     expect(emptyFeatures.audiences.customer).not.toContain('### Features');
     expect(emptyFeatures.audiences.executive).toBe('Patch includes 1 bug fix. Highlights include Null pointer on save.');
   });

@@ -147,3 +147,47 @@ export function confluencePageUrl(payload: unknown): string | undefined {
   const normalizedPath = webui.startsWith('/') ? webui : `/${webui}`;
   return `${normalizedBase}${normalizedPath}`;
 }
+
+export interface ConfluencePageRef {
+  id: string;
+  title: string;
+  version: number;
+  url?: string;
+}
+
+export function parsePageVersion(payload: unknown): number | undefined {
+  const version = asRecord(asRecord(payload)?.version);
+  const number = version?.number;
+  if (typeof number === 'number' && Number.isInteger(number) && number > 0) return number;
+  if (typeof number === 'string' && /^[1-9]\d*$/.test(number)) return Number(number);
+  return undefined;
+}
+
+export function parseConfluencePages(payload: unknown): ConfluencePageRef[] {
+  const body = asRecord(payload);
+  const results = Array.isArray(body?.results) ? body.results : [];
+  return results.flatMap((raw) => {
+    const page = asRecord(raw);
+    if (!page || page.id == null) return [];
+    const title = typeof page.title === 'string' ? page.title : '';
+    const version = parsePageVersion(page) ?? 1;
+    return [{ id: String(page.id), title, version, url: confluencePageUrl(page) }];
+  });
+}
+
+export function pageFromResponse(
+  payload: unknown,
+  title: string,
+  updated: boolean,
+): { id?: string; url?: string; title: string; version?: number; updated: boolean } {
+  const body = asRecord(payload);
+  const id = body?.id != null ? String(body.id) : undefined;
+  const version = parsePageVersion(payload);
+  return {
+    id,
+    url: confluencePageUrl(payload),
+    title,
+    version,
+    updated,
+  };
+}
