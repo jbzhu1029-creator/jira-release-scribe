@@ -25,7 +25,7 @@ The app requests these Atlassian scopes:
 
 - `read:jira-work` — to search issues and list projects and versions
 - `read:confluence-space.summary` and `read:space:confluence` — to list spaces the app can publish to
-- `write:confluence-content` and `write:page:confluence` — to create a release-notes page when the user publishes
+- `write:confluence-content`, `write:page:confluence`, and `read:page:confluence` — to create a release-notes page, or to update that page as a new version when the title already exists
 
 Jira reads run as the invoking user (`api.asUser()`), so the app only sees issues that person can already access. Listing Confluence spaces and creating a published page run as the app (`api.asApp()`) on the same site, and still do not leave Atlassian.
 

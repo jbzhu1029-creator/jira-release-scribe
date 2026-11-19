@@ -108,3 +108,5 @@ permissions:
     # Classic scopes above are kept; they are not enough for /wiki/api/v2/*.
     - read:space:confluence
     - write:page:confluence
+    # Needed to look up an existing page before updating it as a new version.
+    - read:page:confluence

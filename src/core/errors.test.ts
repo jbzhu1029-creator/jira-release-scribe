@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { confluenceSpacesLoadError, errorMessage, formatApiError } from './errors';
+import { confluenceSpacesLoadError, errorMessage, formatApiError, isDuplicateConfluenceTitle } from './errors';
 
 describe('API errors', () => {
   it('reads Jira error messages and field errors', () => {
@@ -26,7 +26,7 @@ describe('API errors', () => {
       }),
       'Could not create the Confluence page',
     );
-    expect(message).toContain('Edit the page title and publish again.');
+    expect(message).toContain('should update that page');
     expect(message).toContain('already exists: Release notes');
   });
 
@@ -50,4 +50,14 @@ describe('API errors', () => {
     expect(confluenceSpacesLoadError('Reload Release Scribe and approve the app access prompt if Jira shows one. (401).')).toContain('access prompt');
     expect(confluenceSpacesLoadError('You do not have permission to list Confluence spaces. You can still copy the notes.')).toContain('permission to list');
     expect(confluenceSpacesLoadError(undefined)).toContain('could not be loaded');
+  });
+
+  it('detects a duplicate Confluence title so the client can update the page', () => {
+    const body = JSON.stringify({
+      errors: [{ status: 400, code: 'BAD_REQUEST', title: 'A page with this title already exists: Release notes' }],
+    });
+    expect(isDuplicateConfluenceTitle(400, body)).toBe(true);
+    expect(isDuplicateConfluenceTitle(409, body)).toBe(true);
+    expect(isDuplicateConfluenceTitle(403, body)).toBe(false);
+    expect(isDuplicateConfluenceTitle(400, '{"message":"Nope"}')).toBe(false);
   });

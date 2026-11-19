@@ -112,7 +112,7 @@ function renderBlockMarkdown(block: Block): string {
   if (block.paragraph) lines.push('', escapeMarkdown(block.paragraph));
   if (block.bullets) {
     lines.push('');
-    if (block.bullets.length === 0) lines.push(block.emptyText ?? '_None._');
+    if (block.bullets.length === 0) lines.push(`_${block.emptyText ?? 'None.'}_`);
     else for (const bullet of block.bullets) lines.push(`- ${renderPartsMarkdown(bullet.parts)}`);
   }
   return lines.join('\n');
@@ -124,7 +124,7 @@ function renderBlockXml(block: Block): string {
   if (block.intro) chunks.push(`<p>${escapeXml(block.intro)}</p>`);
   if (block.paragraph) chunks.push(`<p>${escapeXml(block.paragraph)}</p>`);
   if (block.bullets) {
-    if (block.bullets.length === 0) chunks.push(`<p>${escapeXml(block.emptyText ?? 'None.')}</p>`);
+    if (block.bullets.length === 0) chunks.push(`<p><em>${escapeXml(block.emptyText ?? 'None.')}</em></p>`);
     else chunks.push(`<ul>${block.bullets.map((bullet) => `<li>${renderPartsXml(bullet.parts)}</li>`).join('')}</ul>`);
   }
   return chunks.join('');
@@ -192,7 +192,7 @@ export function generateReleaseNotes(input: ReleaseNotesInput, rewriter: Summary
     heading: GROUP_LABELS[group],
     level: 3,
     bullets: groups[group].map(engineeringBullet),
-    emptyText: '_None._',
+    emptyText: 'None.',
   }));
 
   const customerBlocks: Block[] = RELEASE_GROUPS.filter((group) => groups[group].length > 0).map((group) => ({

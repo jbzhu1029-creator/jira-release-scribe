@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { confluencePageUrl, parseIssue, parseProjects, parseSearchPage, parseSpaces, parseVersions, readCursor, sortVersions } from './parse';
+import { confluencePageUrl, pageFromResponse, parseConfluencePages, parseIssue, parsePageVersion, parseProjects, parseSearchPage, parseSpaces, parseVersions, readCursor, sortVersions } from './parse';
 
 describe('Jira parsers', () => {
   it('reads an issue and skips a payload with no key', () => {
@@ -85,3 +85,38 @@ describe('Confluence parsers', () => {
     expect(confluencePageUrl({})).toBeUndefined();
   });
 });
+
+  it('reads a Confluence page version and a title search', () => {
+    expect(parsePageVersion({ version: { number: 3 } })).toBe(3);
+    expect(parsePageVersion({ version: { number: '2' } })).toBe(2);
+    expect(parsePageVersion({ version: { number: 0 } })).toBeUndefined();
+    const pages = parseConfluencePages({
+      results: [
+        {
+          id: 65692,
+          title: 'Release notes: RS 1.4.0 (2026-11-19)',
+          version: { number: 1 },
+          _links: { base: 'https://site.atlassian.net/wiki', webui: '/spaces/RSNOTES/pages/65692/Notes' },
+        },
+      ],
+    });
+    expect(pages).toEqual([
+      {
+        id: '65692',
+        title: 'Release notes: RS 1.4.0 (2026-11-19)',
+        version: 1,
+        url: 'https://site.atlassian.net/wiki/spaces/RSNOTES/pages/65692/Notes',
+      },
+    ]);
+    expect(pageFromResponse(pages[0] && {
+      id: '65692',
+      version: { number: 2 },
+      _links: { base: 'https://site.atlassian.net/wiki', webui: '/spaces/RSNOTES/pages/65692/Notes' },
+    }, 'Release notes: RS 1.4.0 (2026-11-19)', true)).toEqual({
+      id: '65692',
+      url: 'https://site.atlassian.net/wiki/spaces/RSNOTES/pages/65692/Notes',
+      title: 'Release notes: RS 1.4.0 (2026-11-19)',
+      version: 2,
+      updated: true,
+    });
+  });

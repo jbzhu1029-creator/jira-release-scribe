@@ -58,7 +58,7 @@ Issue types are grouped with fixed rules: names containing “bug”, “defect�
 
 An optional `SummaryRewriter` can rephrase customer and executive lines. The default rewriter is the rule above. A model-backed rewriter can be passed into `generateReleaseNotes` later. It is not wired up, and a rewriter that throws falls back to the rules, so the app still renders with no AI entitlement and no third-party HTTP call.
 
-At most 200 issues are included. Engineering, customer, and executive copy each say when that cap is hit, and the page shows the same warning. An empty match says that nothing matched and tells you to confirm the version or switch to JQL, instead of publishing a heading with no explanation. Custom JQL is limited to 2,000 characters. Publishing rebuilds the page from sanitized issue fields, so the storage body cannot carry raw HTML from the browser. A duplicate Confluence title, a 401, a 403, a 404, and a 429 become a short next step rather than a raw status line. Confluence v2 returns errors as an array of objects; that shape is read too.
+At most 200 issues are included. Engineering, customer, and executive copy each say when that cap is hit, and the page shows the same warning. An empty match says that nothing matched and tells you to confirm the version or switch to JQL, instead of publishing a heading with no explanation. Custom JQL is limited to 2,000 characters. Publishing rebuilds the page from sanitized issue fields, so the storage body cannot carry raw HTML from the browser. A second publish with the same title updates the existing Confluence page as a new version, and the Jira page says so. A 401, a 403, a 404, and a 429 become a short next step rather than a raw status line. Confluence v2 returns errors as an array of objects; that shape is read too.
 
 ## Scopes and runtime
 
@@ -70,13 +70,14 @@ At most 200 issues are included. Engineering, customer, and executive copy each 
 | `read:confluence-space.summary` | Classic space-list scope, kept alongside the v2 scope. |
 | `write:confluence-content` | Classic page-create scope, kept alongside the v2 scope. |
 | `read:space:confluence` | List spaces with GET `/wiki/api/v2/spaces`. |
-| `write:page:confluence` | Create the release-notes page with POST `/wiki/api/v2/pages`. |
+| `write:page:confluence` | Create or update the release-notes page with POST or PUT `/wiki/api/v2/pages`. |
+| `read:page:confluence` | Look up an existing page by title so a second publish can write a new version. |
 
 There is no `permissions.external` block, so the app makes no third-party network calls. That is the Runs on Atlassian posture. After you log in, confirm with `forge eligibility`.
 
 The runtime is `nodejs24.x` on `arm64`, which is the runtime the Forge manifest schema recommends for standard Atlassian cloud. Atlassian Government Cloud does not offer `arm64`; set `architecture: x86_64` before deploying there.
 
-The Confluence v2 APIs used here require the granular scopes `read:space:confluence` (GET `/wiki/api/v2/spaces`) and `write:page:confluence` (POST `/wiki/api/v2/pages`). The manifest also keeps the classic scopes `read:confluence-space.summary` and `write:confluence-content`. After a scope change, deploy and run `forge install --upgrade`.
+The Confluence v2 APIs used here require the granular scopes `read:space:confluence` (GET `/wiki/api/v2/spaces`), `write:page:confluence` (POST or PUT `/wiki/api/v2/pages`), and `read:page:confluence` (look up a page by title). The manifest also keeps the classic scopes `read:confluence-space.summary` and `write:confluence-content`. After a scope change, deploy and run `forge install --upgrade`.
 
 ## Develop without an Atlassian login
 
@@ -144,7 +145,7 @@ forge site provision
 forge install --demo-site
 ```
 
-`forge site provision` prints the site URL. You can only have one provisioned site at a time. Approve the consent screen. It lists `read:jira-work`, `read:confluence-space.summary`, `write:confluence-content`, `read:space:confluence`, and `write:page:confluence`.
+`forge site provision` prints the site URL. You can only have one provisioned site at a time. Approve the consent screen. It lists `read:jira-work`, `read:confluence-space.summary`, `write:confluence-content`, `read:space:confluence`, `write:page:confluence`, and `read:page:confluence`.
 
 `forge lint` needs the login above. CI already validates the manifest schema offline. `forge deploy` bundles the TypeScript UI and the functions. There is no separate frontend build.
 
@@ -167,7 +168,7 @@ Jira reads use `api.asUser()`, so the first time the page loads Jira may ask the
 10. Run `forge eligibility` and read whether the app meets Runs on Atlassian. The manifest has no `permissions.external` block. Eligibility has not been run for this repository, because the app has not been deployed.
 11. Open a fix version that has no issues. Expect the message “No issues matched”, and the same sentence in the customer and engineering notes. The customer section does not invent changes.
 12. A result larger than 200 issues says the draft stops there, on the page and in every audience. The cap is what the code does. This repository has not run that query on a site.
-13. Publish, then publish again with the same page title. Expect a message that the title already exists. Edit the title and publish again.
+13. Publish, then publish again with the same page title. Expect a success message that the page already exists and was updated to a new version. The same URL opens the updated page.
 14. If Jira returns 403, the page says you do not have permission to browse those issues. The query runs as the person who clicked Draft.
 
 ### Atlassian MCP tools
@@ -195,7 +196,7 @@ In the [developer console](https://developer.atlassian.com/console/myapps/), set
 
 Atlassian Government Cloud does not offer the `arm64` architecture declared here. Set `architecture: x86_64` before deploying there.
 
-The manifest already includes `read:space:confluence` and `write:page:confluence` for the v2 APIs. After changing scopes, deploy again and run `forge install --upgrade` with the site, product, and environment flags above.
+The manifest already includes `read:space:confluence`, `write:page:confluence`, and `read:page:confluence` for the v2 APIs. After changing scopes, deploy again and run `forge install --upgrade` with the site, product, and environment flags above.
 
 ## Project layout for the submission
 

@@ -25,9 +25,15 @@ export function confluenceSpacesLoadError(error?: string): string {
   return message || 'Confluence spaces could not be loaded. You can still copy the notes.';
 }
 
+export function isDuplicateConfluenceTitle(status: number, body: string): boolean {
+  if (status !== 400 && status !== 409) return false;
+  const detail = readErrorDetail(body);
+  return /title/i.test(detail) && /already exists/i.test(detail);
+}
+
 function guidanceFor(status: number, detail: string, fallback: string): string | undefined {
   if ((status === 400 || status === 409) && /title/i.test(detail) && /already exists/i.test(detail)) {
-    return 'A Confluence page with this title already exists. Edit the page title and publish again.';
+    return 'A Confluence page with this title already exists. Another publish with the same title should update that page. If this message still appears, edit the title and publish again.';
   }
   if (status === 401) {
     return 'Reload Release Scribe and approve the app access prompt if Jira shows one.';

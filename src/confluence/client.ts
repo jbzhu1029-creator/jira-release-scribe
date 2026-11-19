@@ -1,8 +1,21 @@
 import api, { route } from '@forge/api';
-import { formatApiError } from '../core/errors';
+import { formatApiError, isDuplicateConfluenceTitle } from '../core/errors';
 import { MAX_LIST_PAGES } from '../core/paging';
-import { confluencePageUrl, parseSpaces, type ConfluenceSpace } from '../core/parse';
+import {
+  pageFromResponse,
+  parseConfluencePages,
+  parseSpaces,
+  type ConfluenceSpace,
+} from '../core/parse';
 import type { ConfluencePagePayload } from '../core/publish';
+
+export interface PublishedPage {
+  id?: string;
+  url?: string;
+  title: string;
+  version?: number;
+  updated: boolean;
+}
 
 const JSON_HEADERS = {
   Accept: 'application/json',
@@ -48,17 +61,54 @@ export async function listSpaces(): Promise<ConfluenceSpace[]> {
   return spaces.slice(0, 100);
 }
 
-export async function createPage(payload: ConfluencePagePayload): Promise<{ id?: string; url?: string; title: string }> {
+async function findPageByTitle(spaceId: string, title: string) {
+  const response = await confluence().requestConfluence(
+    route`/wiki/api/v2/pages?space-id=${spaceId}&title=${title}&limit=25&status=current`,
+  );
+  await assertOk(response, 'Could not look up the Confluence page');
+  const pages = parseConfluencePages(await response.json());
+  return pages.find((page) => page.title === title) ?? pages[0];
+}
+
+async function updatePage(
+  id: string,
+  currentVersion: number,
+  payload: ConfluencePagePayload,
+): Promise<PublishedPage> {
+  const nextVersion = currentVersion + 1;
+  const response = await confluence().requestConfluence(route`/wiki/api/v2/pages/${id}`, {
+    method: 'PUT',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({
+      id,
+      status: 'current',
+      title: payload.title,
+      body: payload.body,
+      version: { number: nextVersion, message: 'Updated by Release Scribe' },
+    }),
+  });
+  await assertOk(response, 'Could not update the Confluence page');
+  return pageFromResponse(await response.json(), payload.title, true);
+}
+
+export async function createPage(payload: ConfluencePagePayload): Promise<PublishedPage> {
+  const existing = await findPageByTitle(payload.spaceId, payload.title);
+  if (existing) {
+    return updatePage(existing.id, existing.version, payload);
+  }
+
   const response = await confluence().requestConfluence(route`/wiki/api/v2/pages`, {
     method: 'POST',
     headers: JSON_HEADERS,
     body: JSON.stringify(payload),
   });
-  await assertOk(response, 'Could not create the Confluence page');
-  const created = (await response.json()) as { id?: unknown };
-  return {
-    id: typeof created.id === 'string' ? created.id : created.id != null ? String(created.id) : undefined,
-    url: confluencePageUrl(created),
-    title: payload.title,
-  };
+  const body = await response.text();
+  if (!response.ok && isDuplicateConfluenceTitle(response.status, body)) {
+    const conflict = await findPageByTitle(payload.spaceId, payload.title);
+    if (conflict) return updatePage(conflict.id, conflict.version, payload);
+  }
+  if (!response.ok) {
+    throw new Error(formatApiError(response.status, body, 'Could not create the Confluence page'));
+  }
+  return pageFromResponse(JSON.parse(body) as unknown, payload.title, false);
 }

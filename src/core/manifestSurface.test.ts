@@ -26,5 +26,6 @@ describe('manifest Codegeist modules', () => {
     expect(manifest).toContain('write:confluence-content');
     expect(manifest).toContain('read:space:confluence');
     expect(manifest).toContain('write:page:confluence');
+    expect(manifest).toContain('read:page:confluence');
   });
 });
