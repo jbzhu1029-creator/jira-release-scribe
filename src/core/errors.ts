@@ -16,6 +16,15 @@ export function errorMessage(error: unknown): string {
   return 'Something went wrong while building release notes.';
 }
 
+/** User-facing copy when the Jira page fails to load Confluence spaces. */
+export function confluenceSpacesLoadError(error?: string): string {
+  const message = error?.trim() ?? '';
+  if (/authentication required|approve the app access prompt/i.test(message)) {
+    return 'Confluence access is missing for this app. Reload Release Scribe after an admin upgrades the installation, or approve the access prompt if one appears. You can still copy the notes.';
+  }
+  return message || 'Confluence spaces could not be loaded. You can still copy the notes.';
+}
+
 function guidanceFor(status: number, detail: string, fallback: string): string | undefined {
   if ((status === 400 || status === 409) && /title/i.test(detail) && /already exists/i.test(detail)) {
     return 'A Confluence page with this title already exists. Edit the page title and publish again.';

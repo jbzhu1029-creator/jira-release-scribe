@@ -6,7 +6,9 @@
     "lib": ["ES2022", "DOM"],
     "jsx": "react-jsx",
     "strict": true,
-    "noEmit": true,
+    // Forge's ts-loader honors noEmit. It must be false so `forge deploy` can
+    // emit JS. `npm run typecheck` still passes --noEmit.
+    "noEmit": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "isolatedModules": true,

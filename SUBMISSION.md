@@ -36,12 +36,12 @@ The draft is deterministic. The same issues produce the same sentences, with or 
 Release Scribe is an Atlassian Forge app on the Node.js 24 runtime.
 
 - The project page is UI Kit (`jira:projectPage`, `render: native`). It calls a Forge resolver.
-- The resolver reads projects, versions, and issues with `api.asUser().requestJira`, and creates pages with `api.asUser().requestConfluence` against `POST /wiki/api/v2/pages`. Issue search uses `POST /rest/api/3/search/jql`, because the old `/rest/api/3/search` endpoint has been removed.
+- The resolver reads projects, versions, and issues with `api.asUser().requestJira`, and lists spaces and creates pages with `api.asApp().requestConfluence` against `GET /wiki/api/v2/spaces` and `POST /wiki/api/v2/pages`. Issue search uses `POST /rest/api/3/search/jql`, because the old `/rest/api/3/search` endpoint has been removed. Confluence uses the app user so the Jira project page can publish without a second product-auth prompt.
 - Grouping, audience text, Markdown, and Confluence storage XHTML live in plain TypeScript under `src/core`. Vitest covers them without Forge credentials. GitHub Actions runs ESLint, `tsc`, Vitest, the offline demo, and `@forge/manifest` schema validation.
 - Where a model would help the phrasing, the core takes an optional rewriter. The default rewriter is rules: drop `[INTERNAL]` tags and `feat:` prefixes, keep engineering lines literal, and build the executive paragraph from counts and up to three highlights. If a rewriter throws, the rules still run.
 - The Rovo agent (`rovo:agent`) does not invent issues. Its prompt tells it to call one of two `action` modules, both `actionVerb: GET`, and to show the Markdown those functions return. Rovo can phrase the conversation. The notes body stays the tested renderer.
 - A `rovo:mcp` module lists those same two actions as tools. Other Rovo agents can call them, and Atlassian MCP can expose them after a site admin turns the tools on. The endpoint in the Forge docs is `https://mcp.atlassian.com/forge/<appId>`. The committed app id is a placeholder, so that URL is not live, and external exposure has not been enabled.
-- Scopes are `read:jira-work`, `read:confluence-space.summary`, and `write:confluence-content`. There is no external-fetch permission, so the app does not send issue text off Atlassian and stays in the Runs on Atlassian shape. `forge eligibility` still has to be run by someone who is logged in. It has not been run for this repository.
+- Scopes are `read:jira-work`, `read:confluence-space.summary`, `write:confluence-content`, `read:space:confluence`, and `write:page:confluence`. There is no external-fetch permission, so the app does not send issue text off Atlassian and stays in the Runs on Atlassian shape. `forge eligibility` still has to be run by someone who is logged in. It has not been run for this repository.
 - The offline demo parses the same search-page shape the Jira client parses, including a second page and a `nextPageToken`, then calls `createReleaseNotes`.
 
 ## Challenges
@@ -52,7 +52,7 @@ Release Scribe is an Atlassian Forge app on the Node.js 24 runtime.
 - Confluence storage is XML. Issue summaries are escaped, and the publish path rebuilds the page on the server from sanitized fields so the browser cannot submit a storage body of its own.
 - Rovo will happily answer from the prompt if the prompt is vague. The agent instructions say to call an action before talking about issues, and to treat an `error` field as the answer when the project or version is missing.
 - A real app id cannot be committed. The manifest ships with a placeholder and a TODO. `forge register` is a manual step for the account owner.
-- The Confluence v2 REST docs list granular scopes, while Forge’s scope guide still recommends the classic scopes those APIs were built with. The manifest uses the three classic scopes. The README records the granular fallback if a site rejects them.
+- The Confluence v2 REST docs require `read:space:confluence` and `write:page:confluence`. The manifest declares those together with the classic scopes `read:jira-work`, `read:confluence-space.summary`, and `write:confluence-content`.
 
 ## Accomplishments
 
@@ -122,7 +122,7 @@ None of these have been done for this repository.
 - [ ] Create an Atlassian account and an API token, then install the Forge CLI (`npm install -g @forge/cli@latest`) and run `forge login`.
 - [ ] Provision the Codegeist development site with `forge site provision`. Confirm Jira, Confluence (`/wiki`), and Rovo Chat load. Install with `forge install --demo-site`. A site you already control also works: `forge install --site your-site.atlassian.net --product jira --environment development`.
 - [ ] From this directory, run `forge register` and let it replace the placeholder `app.id`. Do not commit that id.
-- [ ] Run `forge lint`, then `forge deploy -e development`, and install. Approve the consent screen (`read:jira-work`, `read:confluence-space.summary`, `write:confluence-content`).
+- [ ] Run `forge lint`, then `forge deploy -e development`, and install. Approve the consent screen (`read:jira-work`, `read:confluence-space.summary`, `write:confluence-content`, `read:space:confluence`, `write:page:confluence`).
 - [ ] On that site, run the README checks: a draft, the three audiences, a published page, the two Rovo prompts, an empty fix version, and a second publish with the same title.
 - [ ] Run `forge eligibility` and record whether Runs on Atlassian passes. The manifest has no external-fetch permission. Eligibility has not been run.
 - [ ] Screenshots for Devpost, taken on the site: the project page with a draft, the Confluence page, and a Rovo reply. Do not present the offline terminal frames as a live install.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { errorMessage, formatApiError } from './errors';
+import { confluenceSpacesLoadError, errorMessage, formatApiError } from './errors';
 
 describe('API errors', () => {
   it('reads Jira error messages and field errors', () => {
@@ -44,3 +44,10 @@ describe('API errors', () => {
     expect(errorMessage('nope')).toBe('Something went wrong while building release notes.');
   });
 });
+
+  it('rewrites a swallowed Confluence Authentication Required error', () => {
+    expect(confluenceSpacesLoadError('Authentication Required')).toContain('upgrades the installation');
+    expect(confluenceSpacesLoadError('Reload Release Scribe and approve the app access prompt if Jira shows one. (401).')).toContain('access prompt');
+    expect(confluenceSpacesLoadError('You do not have permission to list Confluence spaces. You can still copy the notes.')).toContain('permission to list');
+    expect(confluenceSpacesLoadError(undefined)).toContain('could not be loaded');
+  });

@@ -24,6 +24,7 @@ import { useEffect, useState } from 'react';
 import { jqlForFixVersion } from '../core/jql';
 import { draftNotices } from '../core/notes';
 import { GROUP_LABELS, RELEASE_GROUPS, type Audience, type ReleaseGroup, type ReleaseIssue, type ReleaseNotes } from '../core/types';
+import { confluenceSpacesLoadError } from '../core/errors';
 import { buildPageTitle } from '../core/publish';
 
 interface Option {
@@ -140,7 +141,7 @@ export function App() {
       if (cancelled) return;
       setLoadingSpaces(false);
       if (!result.ok || !result.data) {
-        setSpacesWarning(result.error ?? 'Confluence spaces could not be loaded. You can still copy the notes.');
+        setSpacesWarning(confluenceSpacesLoadError(result.error));
         return;
       }
       setSpaces(result.data);

@@ -37,7 +37,7 @@ Jira project page (UI Kit)          Rovo agent
         \                              /
          v                            v
               Jira + Confluence calls
-              (api.asUser, no egress)
+              (Jira asUser, Confluence asApp, no egress)
                        |
                        v
               src/core  (pure TypeScript)
@@ -67,14 +67,16 @@ At most 200 issues are included. Engineering, customer, and executive copy each 
 | Scope | Why |
 | --- | --- |
 | `read:jira-work` | Projects, fix versions, and issue search. |
-| `read:confluence-space.summary` | List spaces to publish into. |
-| `write:confluence-content` | Create the release-notes page. |
+| `read:confluence-space.summary` | Classic space-list scope, kept alongside the v2 scope. |
+| `write:confluence-content` | Classic page-create scope, kept alongside the v2 scope. |
+| `read:space:confluence` | List spaces with GET `/wiki/api/v2/spaces`. |
+| `write:page:confluence` | Create the release-notes page with POST `/wiki/api/v2/pages`. |
 
 There is no `permissions.external` block, so the app makes no third-party network calls. That is the Runs on Atlassian posture. After you log in, confirm with `forge eligibility`.
 
 The runtime is `nodejs24.x` on `arm64`, which is the runtime the Forge manifest schema recommends for standard Atlassian cloud. Atlassian Government Cloud does not offer `arm64`; set `architecture: x86_64` before deploying there.
 
-The Confluence v2 REST docs also name the granular scopes `read:space:confluence` and `write:page:confluence`. Classic scopes are what Forge recommends where they exist, and they are the ones declared here. If a create-page call returns a scope error, add those two granular scopes and rerun the deploy and `forge install --upgrade` commands in the deploy section below.
+The Confluence v2 APIs used here require the granular scopes `read:space:confluence` (GET `/wiki/api/v2/spaces`) and `write:page:confluence` (POST `/wiki/api/v2/pages`). The manifest also keeps the classic scopes `read:confluence-space.summary` and `write:confluence-content`. After a scope change, deploy and run `forge install --upgrade`.
 
 ## Develop without an Atlassian login
 
@@ -142,11 +144,11 @@ forge site provision
 forge install --demo-site
 ```
 
-`forge site provision` prints the site URL. You can only have one provisioned site at a time. Approve the consent screen. It lists `read:jira-work`, `read:confluence-space.summary`, and `write:confluence-content`.
+`forge site provision` prints the site URL. You can only have one provisioned site at a time. Approve the consent screen. It lists `read:jira-work`, `read:confluence-space.summary`, `write:confluence-content`, `read:space:confluence`, and `write:page:confluence`.
 
 `forge lint` needs the login above. CI already validates the manifest schema offline. `forge deploy` bundles the TypeScript UI and the functions. There is no separate frontend build.
 
-If Forge asks the user to grant the app access the first time the page loads, accept that grant. `api.asUser()` uses it.
+Jira reads use `api.asUser()`, so the first time the page loads Jira may ask the user to grant the app access; accept that grant. Confluence list and publish use `api.asApp()`, so the Space dropdown does not depend on a separate Confluence 3LO consent prompt from this Jira module.
 
 ### What to check
 
@@ -193,7 +195,7 @@ In the [developer console](https://developer.atlassian.com/console/myapps/), set
 
 Atlassian Government Cloud does not offer the `arm64` architecture declared here. Set `architecture: x86_64` before deploying there.
 
-If a create-page call returns a scope error, add the granular scopes `read:space:confluence` and `write:page:confluence`, deploy again, and run `forge install --upgrade` with the site, product, and environment flags above.
+The manifest already includes `read:space:confluence` and `write:page:confluence` for the v2 APIs. After changing scopes, deploy again and run `forge install --upgrade` with the site, product, and environment flags above.
 
 ## Project layout for the submission
 
@@ -204,7 +206,7 @@ If a create-page call returns a scope error, add the granular scopes `read:space
 
 ## Security
 
-- Jira and Confluence are called with `api.asUser()`, including from Rovo actions, so the app sees only what the invoking person can see. Authorization does not trust an issue key or project key supplied by the model; the product API enforces browse permission.
+- Jira is called with `api.asUser()`, including from Rovo actions, so the draft only includes issues the invoking person can already open. Confluence space list and page create use `api.asApp()`, because `asUser().requestConfluence()` from this Jira module has no Confluence token until the user grants 3LO consent, and catching that error suppresses the consent prompt. Authorization does not trust an issue key or project key supplied by the model; the Jira product API enforces browse permission.
 - Project keys used in a URL path are checked against `^[A-Z][A-Z0-9]{1,9}$` before the request. Version names are quoted and escaped inside JQL.
 - Page titles are length-capped. Issue summaries written into Confluence storage are XML-escaped. The publish handler rebuilds the page from sanitized fields instead of accepting HTML from the browser.
 - No tokens, site names, or real app ids belong in git.

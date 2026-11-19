@@ -104,3 +104,7 @@ permissions:
     - read:jira-work
     - read:confluence-space.summary
     - write:confluence-content
+    # v2 space list and page create require these granular scopes.
+    # Classic scopes above are kept; they are not enough for /wiki/api/v2/*.
+    - read:space:confluence
+    - write:page:confluence

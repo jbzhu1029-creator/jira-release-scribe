@@ -20,4 +20,11 @@ describe('manifest Codegeist modules', () => {
     expect(mcp).toContain('- changes-since-version');
     expect(manifest).not.toMatch(/^ {2}external:/m);
   });
+
+  it('declares the Confluence v2 scopes needed to list spaces and create pages', () => {
+    expect(manifest).toContain('read:confluence-space.summary');
+    expect(manifest).toContain('write:confluence-content');
+    expect(manifest).toContain('read:space:confluence');
+    expect(manifest).toContain('write:page:confluence');
+  });
 });
